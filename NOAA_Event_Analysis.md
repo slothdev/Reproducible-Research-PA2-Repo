@@ -1,19 +1,7 @@
----
-title: "Adverse Effects of NOAA Storm Events on Population and Economic Well-Being"
-author: "Edwin Seah"
-date: "12 March 2015"
-output: 
-    html_document:
-        keep_md: true
----
-```{r global_options, include=FALSE}
-# Setting global options for R markdown
-knitr::opts_chunk$set(fig.width=14, 
-                      fig.height=8, 
-                      fig.path='figures/',
-                      echo=TRUE, warning=FALSE,
-                      message=FALSE)
-```
+# Adverse Effects of NOAA Storm Events on Population and Economic Well-Being
+Edwin Seah  
+12 March 2015  
+
 
 ## Synopsis
 
@@ -37,10 +25,11 @@ Our final results will present the top ten population and economic effects per s
 
 The analysis requires 8 relevant columns (BGN_DATE, FATALITIES, INJURIES, PROPDMG, 
 PROPDMGEXP, CROPDMG, CROPDMGEXP) to be selected (using `dplyr::select`) from the StormData file and read into a data frame **df**. We also load "sedtable.csv", a csv-file contaning the list of 48 NOAA Storm Event Data Types (from page 6 of NWSI 10-1605 dated Aug 17, 2007) into **sedtbl**.
-```{r load_data, cache=TRUE}
+
+```r
 library(dplyr)
 rawurl <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
-download.file(url=rawurl, destfile="StormData.csv.bz2", method="curl")
+#download.file(url=rawurl, destfile="StormData.csv.bz2", method="curl")
 # Loading Storm Data
 df <- read.csv("StormData.csv.bz2", 
                na.strings=c("NA", "N/A", "", "<NA>"),
@@ -49,7 +38,7 @@ df <- read.csv("StormData.csv.bz2",
     select(BGN_DATE, EVTYPE, FATALITIES, INJURIES, PROPDMG, PROPDMGEXP, CROPDMG, CROPDMGEXP)
 # Loading NOAA Storm Event Data Table of 48 standard types from repository
 surl <- "https://github.com/slothdev/Reproducible-Research-PA2-Repo/blob/master/sedtable.csv"
-download.file(url=surl, destfile="sedtable.csv", method="curl")
+#download.file(url=surl, destfile="sedtable.csv", method="curl")
 sedtbl <- read.csv("sedtable.csv", sep=",", header=TRUE)
 ```
 
@@ -57,7 +46,8 @@ sedtbl <- read.csv("sedtable.csv", sep=",", header=TRUE)
 
 `EVTYPE` will be transformed to match the title-cased NOAA Storm Event Data Types by applying
 `stri_trans_totitle` from the **stringi** package to `EVTYPE`, creating `SEDTYPE`. `SEDTYPE` is used in place of `EVTYPE` for the rest of the analysis. We extract the year from `BGN_DATE` by using `year` from the **lubridate** package, creating `YYYY` so that we can subset only post-1995 data.
-```{r transform_data}
+
+```r
 # Transform EVTYPE into SEDTYPE
 library(stringi)
 df$SEDTYPE <- stri_trim_both(stri_trans_totitle(df$EVTYPE))
@@ -68,8 +58,9 @@ df <- subset(df, YYYY>=1996)
 
 > Pre-process to facilitate better cosine-similarity matching
 
-After the pre-1996 data has been omitted, our subsetted **df** now contains data from `r min(unique(df$YYYY))` till `r max(unique(df$YYYY))`. Two steps are taken to classify the event types on a best-effort basis. Our strategy involves firstly a brute-force synonym replacements of typos/related event names with one of the 48 event types, for every `SEDTYPE` that is classifiable. 
-```{r preproc_data_1}
+After the pre-1996 data has been omitted, our subsetted **df** now contains data from 1996 till 2011. Two steps are taken to classify the event types on a best-effort basis. Our strategy involves firstly a brute-force synonym replacements of typos/related event names with one of the 48 event types, for every `SEDTYPE` that is classifiable. 
+
+```r
 # Place SEDTYPE into a temporary vector t
 t <- df$SEDTYPE
 # Preprocessing #1
@@ -115,7 +106,8 @@ t <- gsub("Drowning|Marine Accident", "Other", t)
 df$SEDTYPE <- t
 ```
 Secondly, we use the cosine-similarity measure from the **stringdist** package via mutating `SEDTYPE` through **ddply**, replacing with whichever of the 48 types possesses the shortest cosine-similarity distance to itself. For instance, a distance of 1 is a perfect match (eg. "Avalanche" to "Avalanche"), while the minimum distance of any of the 48 types is 0.2354471 between "Tstm Wind" and "Thunderstorm Wind".
-```{r preproc_data_2}
+
+```r
 # Preprocessing Step 2 - Cosine-similarity replacement
 library(plyr)
 library(stringdist)
@@ -126,7 +118,8 @@ df <- ddply(df, .(SEDTYPE), mutate, SEDTYPE=sedtbl$EVENT[which.min(stringdist(SE
 
 Our analysis could have been performed prior to the prior pre-processing step using smaller data frames subsetted for FATALITIES/INJURIES and PROPDMG/CROPDMG. However, since we needed to group by the event type anyway, the summarisation is done here, after the events types are standardized. We subset **ph** and **ec** as the data frames for population health and economic consequences respectively, leaving out any observations from **df** that had zero effects (i.e. FATALITIES, INJURIES, PROPDMG or CROPDMG are zero). To normalise the economic damage figures, `PROPDMG` and `CROPDMG` are multipled by their specified exponent (PROPDMGEXP or CROPDMGEXP, where "K", "M" and "B" stand for 10^3, 10^6 and 10^9 respectively).
 
-```{r subset_relevant_data}
+
+```r
 # Subset observations for population health and economic impact into two data frames ph and ec respectively
 library(dplyr)
 ph <- subset(df, FATALITIES>0 | INJURIES>0) %>%
@@ -152,9 +145,10 @@ ec <- subset(df, PROPDMG>0 | CROPDMG>0) %>%
     select(SEDTYPE, PROPDMG, CROPDMG)
 ```
 
-For population health effects, we summarise the total FATALITIES and INJURIES per `SEDTYPE` from **ph** (`r nrow(ph)` recorded observations), and generate a top-ten list for both FATALITIES and INJURIES, which we store in the data frames **f10** and **i10**.
+For population health effects, we summarise the total FATALITIES and INJURIES per `SEDTYPE` from **ph** (12764 recorded observations), and generate a top-ten list for both FATALITIES and INJURIES, which we store in the data frames **f10** and **i10**.
 
-```{r population_health_analysis}
+
+```r
 ph <- ph %>% 
     group_by(SEDTYPE) %>% 
     summarise_each(funs(sum), FATALITIES, INJURIES)
@@ -163,9 +157,10 @@ f10 <- ph %>% arrange(desc(FATALITIES)) %>% head(10)
 i10 <- ph %>% arrange(desc(INJURIES)) %>% head(10)
 ```
 
-For economic consequences, we summarise the total PROPDMG and CROPDMG per `SEDTYPE` from **ec** (`r nrow(ec)` recorded observations), and generate a top-ten list for both PROPDMG and CROPDMG, which we store in the data frames **pd10** and **cd10**.
+For economic consequences, we summarise the total PROPDMG and CROPDMG per `SEDTYPE` from **ec** (194525 recorded observations), and generate a top-ten list for both PROPDMG and CROPDMG, which we store in the data frames **pd10** and **cd10**.
 
-```{r economic_consequence_analysis}
+
+```r
 ec <- ec %>%
     group_by(SEDTYPE) %>%
     summarise_each(funs(sum(., na.rm=TRUE)), PROPDMG, CROPDMG) %>%
@@ -179,8 +174,9 @@ cd10 <- ec %>% arrange(desc(CROPDMG)) %>% head(10)
 
 > Fig.1 Harmful Effects to Population Health
 
-The top ten events that cause the highest number of fatalities and injuries are plotted in the figure below. While **`r head(f10,1)$SEDTYPE`** causes the most fatalities (**`r options(scipen=3, digits=2); head(f10,1)$FATALITIES`**), **`r head(i10,1)$SEDTYPE`** causes a far larger number of injuries (**`r options(scipen=3, digits=2); head(i10,1)$INJURIES`**). The top-ten events cumulatively account for **`r options(scipen=3, digits=2); sum(f10$FATALITIES)`** or **`r options(scipen=3, digits=2); sum(f10$FATALITIES)/sum(ph$FATALITIES)*100`%** of all Fatalities (**`r options(scipen=3, digits=2); sum(ph$FATALITIES)`**) and **`r options(scipen=3, digits=2); sum(i10$INJURIES)`** or **`r options(scipen=3, digits=2); sum(i10$INJURIES)/sum(ph$INJURIES)*100`%** of all Injuries (**`r options(scipen=3, digits=2); sum(ph$INJURIES)`**) for the period from 1996 to 2011.
-```{r harm_to_population_health}
+The top ten events that cause the highest number of fatalities and injuries are plotted in the figure below. While **Excessive Heat** causes the most fatalities (**1799**), **Tornado** causes a far larger number of injuries (**20667**). The top-ten events cumulatively account for **6672** or **76.41%** of all Fatalities (**8732**) and **49604** or **85.56%** of all Injuries (**57975**) for the period from 1996 to 2011.
+
+```r
 library(ggplot2)
 library(gridExtra)
 # Reorder factor levels from top to bottom
@@ -201,10 +197,13 @@ p2 <- ggplot(data=i10, aes(x=SEDTYPE, y=INJURIES, fill=INJURIES)) +
 grid.arrange(p1, p2)
 ```
 
+![](figures/harm_to_population_health-1.png) 
+
 > Fig. 2 Economic Consequences
 
-Property is adversely affected the most by **`r head(pd10,1)$SEDTYPE`** (**$`r options(scipen=3, digits=2); head(pd10,1)$PROPDMG` billion**) while **`r head(cd10,1)$SEDTYPE`** causes the most damage (**$`r options(scipen=3, digits=2); head(cd10,1)$CROPDMG` billion**) for Crops. The top-ten events cumulatively represent **$`r options(scipen=3, digits=2); sum(pd10$PROPDMG)` billion** or **`r options(scipen=3, digits=2); sum(pd10$PROPDMG)/sum(ec$PROPDMG)*100`%** of all Property Damage (**$`r options(scipen=3, digits=2); sum(ec$PROPDMG)` billion**) and **$`r options(scipen=3, digits=2); sum(cd10$CROPDMG)` billion** or **`r options(scipen=3, digits=2); sum(cd10$CROPDMG)/sum(ec$CROPDMG)*100`%** of all Crop Damage (**$`r options(scipen=3, digits=2); sum(ec$CROPDMG)` billion**) for the period from 1996 to 2011.
-```{r economic_consequences}
+Property is adversely affected the most by **Flood** (**$21.57 billion**) while **Drought** causes the most damage (**$12.37 billion**) for Crops. The top-ten events cumulatively represent **$99.5 billion** or **90.93%** of all Property Damage (**$109.42 billion**) and **$29.85 billion** or **92.57%** of all Crop Damage (**$32.24 billion**) for the period from 1996 to 2011.
+
+```r
 # Get Top Ten events causing PROPDMG and CROPDMG
 pd10 <- ec %>% arrange(desc(PROPDMG)) %>% head(10)
 cd10 <- ec %>% arrange(desc(CROPDMG)) %>% head(10)
@@ -227,6 +226,8 @@ p2 <- ggplot(data=cd10, aes(x=SEDTYPE, y=CROPDMG, fill=CROPDMG)) +
     ylab("Crop Damage (billions)")
 grid.arrange(p1, p2)
 ```
+
+![](figures/economic_consequences-1.png) 
 
 ## References
 + Raw [Storm Data](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2) [47Mb]
