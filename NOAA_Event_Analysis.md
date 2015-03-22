@@ -6,7 +6,7 @@ Edwin Seah
 ## Synopsis
 
 This analysis is focused on determining the harmful effects of Storm Event Types `EVTYPE` on 
-population health and economic consequences. For population health, the analysis will present the `EVTYPE` causing the top ten highest numbers of `FATALITIES` and `INJURIES`. However, since only some `EVTYPE` had such effects, we will ignore records that have zero `FATALITIES` or `INURIES`. For economic consequences, we perform a similar analysis and will omit observations causing zero property damages (`PROPDMG`) or crop damages (`CROPDMG`). 
+population health and economic consequences. For population health, the analysis will present the `EVTYPE` causing the top ten highest numbers of `FATALITIES` and `INJURIES`. However, since only some `EVTYPE` had such effects, we will ignore records that have zero `FATALITIES` or `INJURIES`. For economic consequences, we perform a similar analysis and will omit observations causing zero property damages (`PROPDMG`) or crop damages (`CROPDMG`). 
 
 The analysis is focused on data collected post-1995, since from the NOAA database 
 48 storm event data types are reported since 1996 as per NWSI 10-1605 (dated 
@@ -24,12 +24,12 @@ Our final results will present the top ten population and economic effects per s
 > Getting and Loading the Data
 
 The analysis requires 8 relevant columns (BGN_DATE, FATALITIES, INJURIES, PROPDMG, 
-PROPDMGEXP, CROPDMG, CROPDMGEXP) to be selected (using `dplyr::select`) from the StormData file and read into a data frame **df**. We also load "sedtable.csv", a csv-file contaning the list of 48 NOAA Storm Event Data Types (from page 6 of NWSI 10-1605 dated Aug 17, 2007) into **sedtbl**.
+PROPDMGEXP, CROPDMG, CROPDMGEXP) to be selected (using `dplyr::select`) from the StormData file and read into a data frame **df**. We also load "sedtable.csv", a csv-file containing the list of 48 NOAA Storm Event Data Types (from page 6 of NWSI 10-1605 dated Aug 17, 2007) into **sedtbl**.
 
 ```r
 library(dplyr)
 rawurl <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
-#download.file(url=rawurl, destfile="StormData.csv.bz2", method="curl")
+download.file(url=rawurl, destfile="StormData.csv.bz2", method="curl")
 # Loading Storm Data
 df <- read.csv("StormData.csv.bz2", 
                na.strings=c("NA", "N/A", "", "<NA>"),
@@ -38,7 +38,7 @@ df <- read.csv("StormData.csv.bz2",
     select(BGN_DATE, EVTYPE, FATALITIES, INJURIES, PROPDMG, PROPDMGEXP, CROPDMG, CROPDMGEXP)
 # Loading NOAA Storm Event Data Table of 48 standard types from repository
 surl <- "https://github.com/slothdev/Reproducible-Research-PA2-Repo/blob/master/sedtable.csv"
-#download.file(url=surl, destfile="sedtable.csv", method="curl")
+download.file(url=surl, destfile="sedtable.csv", method="curl")
 sedtbl <- read.csv("sedtable.csv", sep=",", header=TRUE)
 ```
 
@@ -70,7 +70,8 @@ t <- gsub("Fld", "Flood", t)
 t <- gsub("Flooding", "Flood", t)
 t <- gsub("Tstm", "Thunderstorm", t)
 t <- gsub("Wintry", "Winter Weather", t)
-t <- gsub("Hyp[o,e,r]{1,}thermia.+", "Cold", t)
+t <- gsub("Hyp[o]{1,}thermia.+", "Cold", t)
+t <- gsub("Hyp[e,r]{1,}thermia.+", "Excessive Heat", t)
 t <- gsub("[Ss]lide|Land[Ss]lump", "Debris Flow", t)
 t <- gsub(".*Surf.*", "High Surf", t)
 t <- gsub(".*Hurricane.*", "Hurricane", t)
@@ -174,7 +175,7 @@ cd10 <- ec %>% arrange(desc(CROPDMG)) %>% head(10)
 
 > Fig.1 Harmful Effects to Population Health
 
-The top ten events that cause the highest number of fatalities and injuries are plotted in the figure below. While **Excessive Heat** causes the most fatalities (**1799**), **Tornado** causes a far larger number of injuries (**20667**). The top-ten events cumulatively account for **6672** or **76.41%** of all Fatalities (**8732**) and **49604** or **85.56%** of all Injuries (**57975**) for the period from 1996 to 2011.
+The top ten events that cause the highest number of fatalities and injuries are plotted in the figure below. While **Excessive Heat** causes the most fatalities (**1800**), **Tornado** causes a far larger number of injuries (**20667**). The top-ten events cumulatively account for **6673**, or **76.42%** of all Fatalities (**8732**), and caused **49604**, or **85.56%** of all Injuries (**57975**) for the period from 1996 to 2011.
 
 ```r
 library(ggplot2)
@@ -201,7 +202,7 @@ grid.arrange(p1, p2)
 
 > Fig. 2 Economic Consequences
 
-Property is adversely affected the most by **Flood** (**$21.57 billion**) while **Drought** causes the most damage (**$12.37 billion**) for Crops. The top-ten events cumulatively represent **$99.5 billion** or **90.93%** of all Property Damage (**$109.42 billion**) and **$29.85 billion** or **92.57%** of all Crop Damage (**$32.24 billion**) for the period from 1996 to 2011.
+Property is adversely affected the most by **Flood** (**$21.57 billion**) while **Drought** causes the most damage (**$12.37 billion**) to Crops. The top-ten storm events cumulatively represent **$99.5 billion**, or **90.93%** of all Property Damage (**$109.42 billion**), and **$29.85 billion**, or **92.57%** of all Crop Damage (**$32.24 billion**) for the period from 1996 to 2011.
 
 ```r
 # Get Top Ten events causing PROPDMG and CROPDMG
@@ -229,9 +230,15 @@ grid.arrange(p1, p2)
 
 ![](figures/economic_consequences-1.png) 
 
-## References
+## References and Links
 + Raw [Storm Data](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2) [47Mb]
 + National Weather Service [Storm Data Documentation](https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf)
 + National Climatic Data Center Storm Events [FAQ](https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2FNCDC%20Storm%20Events-FAQ%20Page.pdf)
 + From NWSI 10-1605 (dated Aug 17, 2007), the NOAA database contains 48 event types (1950-1954 only tornado, 1955-1992 tornado, thunderstorm wind and hail, and 1996-present all 48), as retrieved from [Storm Events Database](http://www.ncdc.noaa.gov/stormevents/details.jsp)
 + [Table of 48 Event Types](https://github.com/slothdev/Reproducible-Research-PA2-Repo/blob/master/sedtable.csv) produced from NWSI 10-1605 (dated Aug 17, 2007) page 6
+
+## Project Repo
++ All files used are available in my [Github Project Repository](https://github.com/slothdev/Reproducible-Research-PA2-Repo)  
+
+
+#### EOF ####

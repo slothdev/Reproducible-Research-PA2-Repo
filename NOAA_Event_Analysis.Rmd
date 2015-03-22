@@ -18,7 +18,7 @@ knitr::opts_chunk$set(fig.width=14,
 ## Synopsis
 
 This analysis is focused on determining the harmful effects of Storm Event Types `EVTYPE` on 
-population health and economic consequences. For population health, the analysis will present the `EVTYPE` causing the top ten highest numbers of `FATALITIES` and `INJURIES`. However, since only some `EVTYPE` had such effects, we will ignore records that have zero `FATALITIES` or `INURIES`. For economic consequences, we perform a similar analysis and will omit observations causing zero property damages (`PROPDMG`) or crop damages (`CROPDMG`). 
+population health and economic consequences. For population health, the analysis will present the `EVTYPE` causing the top ten highest numbers of `FATALITIES` and `INJURIES`. However, since only some `EVTYPE` had such effects, we will ignore records that have zero `FATALITIES` or `INJURIES`. For economic consequences, we perform a similar analysis and will omit observations causing zero property damages (`PROPDMG`) or crop damages (`CROPDMG`). 
 
 The analysis is focused on data collected post-1995, since from the NOAA database 
 48 storm event data types are reported since 1996 as per NWSI 10-1605 (dated 
@@ -36,7 +36,7 @@ Our final results will present the top ten population and economic effects per s
 > Getting and Loading the Data
 
 The analysis requires 8 relevant columns (BGN_DATE, FATALITIES, INJURIES, PROPDMG, 
-PROPDMGEXP, CROPDMG, CROPDMGEXP) to be selected (using `dplyr::select`) from the StormData file and read into a data frame **df**. We also load "sedtable.csv", a csv-file contaning the list of 48 NOAA Storm Event Data Types (from page 6 of NWSI 10-1605 dated Aug 17, 2007) into **sedtbl**.
+PROPDMGEXP, CROPDMG, CROPDMGEXP) to be selected (using `dplyr::select`) from the StormData file and read into a data frame **df**. We also load "sedtable.csv", a csv-file containing the list of 48 NOAA Storm Event Data Types (from page 6 of NWSI 10-1605 dated Aug 17, 2007) into **sedtbl**.
 ```{r load_data, cache=TRUE}
 library(dplyr)
 rawurl <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
@@ -79,7 +79,8 @@ t <- gsub("Fld", "Flood", t)
 t <- gsub("Flooding", "Flood", t)
 t <- gsub("Tstm", "Thunderstorm", t)
 t <- gsub("Wintry", "Winter Weather", t)
-t <- gsub("Hyp[o,e,r]{1,}thermia.+", "Cold", t)
+t <- gsub("Hyp[o]{1,}thermia.+", "Cold", t)
+t <- gsub("Hyp[e,r]{1,}thermia.+", "Excessive Heat", t)
 t <- gsub("[Ss]lide|Land[Ss]lump", "Debris Flow", t)
 t <- gsub(".*Surf.*", "High Surf", t)
 t <- gsub(".*Hurricane.*", "Hurricane", t)
@@ -179,7 +180,7 @@ cd10 <- ec %>% arrange(desc(CROPDMG)) %>% head(10)
 
 > Fig.1 Harmful Effects to Population Health
 
-The top ten events that cause the highest number of fatalities and injuries are plotted in the figure below. While **`r head(f10,1)$SEDTYPE`** causes the most fatalities (**`r options(scipen=3, digits=2); head(f10,1)$FATALITIES`**), **`r head(i10,1)$SEDTYPE`** causes a far larger number of injuries (**`r options(scipen=3, digits=2); head(i10,1)$INJURIES`**). The top-ten events cumulatively account for **`r options(scipen=3, digits=2); sum(f10$FATALITIES)`** or **`r options(scipen=3, digits=2); sum(f10$FATALITIES)/sum(ph$FATALITIES)*100`%** of all Fatalities (**`r options(scipen=3, digits=2); sum(ph$FATALITIES)`**) and **`r options(scipen=3, digits=2); sum(i10$INJURIES)`** or **`r options(scipen=3, digits=2); sum(i10$INJURIES)/sum(ph$INJURIES)*100`%** of all Injuries (**`r options(scipen=3, digits=2); sum(ph$INJURIES)`**) for the period from 1996 to 2011.
+The top ten events that cause the highest number of fatalities and injuries are plotted in the figure below. While **`r head(f10,1)$SEDTYPE`** causes the most fatalities (**`r options(scipen=3, digits=2); head(f10,1)$FATALITIES`**), **`r head(i10,1)$SEDTYPE`** causes a far larger number of injuries (**`r options(scipen=3, digits=2); head(i10,1)$INJURIES`**). The top-ten events cumulatively account for **`r options(scipen=3, digits=2); sum(f10$FATALITIES)`**, or **`r options(scipen=3, digits=2); sum(f10$FATALITIES)/sum(ph$FATALITIES)*100`%** of all Fatalities (**`r options(scipen=3, digits=2); sum(ph$FATALITIES)`**), and caused **`r options(scipen=3, digits=2); sum(i10$INJURIES)`**, or **`r options(scipen=3, digits=2); sum(i10$INJURIES)/sum(ph$INJURIES)*100`%** of all Injuries (**`r options(scipen=3, digits=2); sum(ph$INJURIES)`**) for the period from 1996 to 2011.
 ```{r harm_to_population_health}
 library(ggplot2)
 library(gridExtra)
@@ -203,7 +204,7 @@ grid.arrange(p1, p2)
 
 > Fig. 2 Economic Consequences
 
-Property is adversely affected the most by **`r head(pd10,1)$SEDTYPE`** (**$`r options(scipen=3, digits=2); head(pd10,1)$PROPDMG` billion**) while **`r head(cd10,1)$SEDTYPE`** causes the most damage (**$`r options(scipen=3, digits=2); head(cd10,1)$CROPDMG` billion**) for Crops. The top-ten events cumulatively represent **$`r options(scipen=3, digits=2); sum(pd10$PROPDMG)` billion** or **`r options(scipen=3, digits=2); sum(pd10$PROPDMG)/sum(ec$PROPDMG)*100`%** of all Property Damage (**$`r options(scipen=3, digits=2); sum(ec$PROPDMG)` billion**) and **$`r options(scipen=3, digits=2); sum(cd10$CROPDMG)` billion** or **`r options(scipen=3, digits=2); sum(cd10$CROPDMG)/sum(ec$CROPDMG)*100`%** of all Crop Damage (**$`r options(scipen=3, digits=2); sum(ec$CROPDMG)` billion**) for the period from 1996 to 2011.
+Property is adversely affected the most by **`r head(pd10,1)$SEDTYPE`** (**$`r options(scipen=3, digits=2); head(pd10,1)$PROPDMG` billion**) while **`r head(cd10,1)$SEDTYPE`** causes the most damage (**$`r options(scipen=3, digits=2); head(cd10,1)$CROPDMG` billion**) to Crops. The top-ten storm events cumulatively represent **$`r options(scipen=3, digits=2); sum(pd10$PROPDMG)` billion**, or **`r options(scipen=3, digits=2); sum(pd10$PROPDMG)/sum(ec$PROPDMG)*100`%** of all Property Damage (**$`r options(scipen=3, digits=2); sum(ec$PROPDMG)` billion**), and **$`r options(scipen=3, digits=2); sum(cd10$CROPDMG)` billion**, or **`r options(scipen=3, digits=2); sum(cd10$CROPDMG)/sum(ec$CROPDMG)*100`%** of all Crop Damage (**$`r options(scipen=3, digits=2); sum(ec$CROPDMG)` billion**) for the period from 1996 to 2011.
 ```{r economic_consequences}
 # Get Top Ten events causing PROPDMG and CROPDMG
 pd10 <- ec %>% arrange(desc(PROPDMG)) %>% head(10)
@@ -228,9 +229,15 @@ p2 <- ggplot(data=cd10, aes(x=SEDTYPE, y=CROPDMG, fill=CROPDMG)) +
 grid.arrange(p1, p2)
 ```
 
-## References
+## References and Links
 + Raw [Storm Data](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2) [47Mb]
 + National Weather Service [Storm Data Documentation](https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf)
 + National Climatic Data Center Storm Events [FAQ](https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2FNCDC%20Storm%20Events-FAQ%20Page.pdf)
 + From NWSI 10-1605 (dated Aug 17, 2007), the NOAA database contains 48 event types (1950-1954 only tornado, 1955-1992 tornado, thunderstorm wind and hail, and 1996-present all 48), as retrieved from [Storm Events Database](http://www.ncdc.noaa.gov/stormevents/details.jsp)
 + [Table of 48 Event Types](https://github.com/slothdev/Reproducible-Research-PA2-Repo/blob/master/sedtable.csv) produced from NWSI 10-1605 (dated Aug 17, 2007) page 6
+
+## Project Repo
++ All files used are available in my [Github Project Repository](https://github.com/slothdev/Reproducible-Research-PA2-Repo)  
+
+
+#### EOF ####
